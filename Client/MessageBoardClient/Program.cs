@@ -30,7 +30,8 @@ namespace TodoListClientConsole
             string _graphAPIEndpoint = "https://graph.windows.net/v1.0/me";
 
             //Set the scope for API call to user.read
-            string[] _scopes = new string[] { "api://815a718e-1419-4a51-b90d-28ad6bdecac4/access_as_user"/*"user.read"*/ };
+            // string[] _scopes = new string[] { "api://815a718e-1419-4a51-b90d-28ad6bdecac4/access_as_user"/*"user.read"*/ };
+            string[] _scopes = new string[] { "api://26ad214e-57ce-495b-b9ce-005284263ab6/access_as_user"/*"user.read"*/ };
 
 #if true
             public async Task Run()

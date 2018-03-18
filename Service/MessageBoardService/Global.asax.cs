@@ -66,7 +66,8 @@ namespace MessageBoardService
         //
         static string aadInstance = "https://login.microsoftonline.com/{0}"; //  ConfigurationManager.AppSettings["ida:AADInstance"];
         static string tenant = "microsoft.onmicrosoft.com"; //  ConfigurationManager.AppSettings["ida:Tenant"];
-        static string audience = "815a718e-1419-4a51-b90d-28ad6bdecac4"; //ConfigurationManager.AppSettings["ida:Audience"];
+        //static string audience = "815a718e-1419-4a51-b90d-28ad6bdecac4"; //ConfigurationManager.AppSettings["ida:Audience"];
+        static string audience = "26ad214e-57ce-495b-b9ce-005284263ab6"; //ConfigurationManager.AppSettings["ida:Audience"];
         string authority = String.Format(aadInstance, tenant);
 
         static string _issuer = string.Empty;
@@ -255,7 +256,7 @@ namespace MessageBoardService
                 }
 
                 // If the token is scoped, verify that required permission is set in the scope claim.
-                if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value != "access_as_user")
+                if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && !ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value.Contains("access_as_user"))
                 {
                     HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Forbidden);
                     return response;
