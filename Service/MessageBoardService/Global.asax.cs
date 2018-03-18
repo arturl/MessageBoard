@@ -66,7 +66,7 @@ namespace MessageBoardService
         //
         static string aadInstance = "https://login.microsoftonline.com/{0}"; //  ConfigurationManager.AppSettings["ida:AADInstance"];
         static string tenant = "microsoft.onmicrosoft.com"; //  ConfigurationManager.AppSettings["ida:Tenant"];
-        static string audience = "https://microsoft.onmicrosoft.com/26ad214e-57ce-495b-b9ce-005284263ab6"; //ConfigurationManager.AppSettings["ida:Audience"];
+        static string audience = "815a718e-1419-4a51-b90d-28ad6bdecac4"; //ConfigurationManager.AppSettings["ida:Audience"];
         string authority = String.Format(aadInstance, tenant);
 
         static string _issuer = string.Empty;
@@ -186,13 +186,11 @@ namespace MessageBoardService
             var url = "https://graph.microsoft.com/v1.0/me";
             var ss = await GetHttpContentWithToken(url, token.AccessToken);
 #endif
-
             string issuer;
             List<SecurityToken> signingTokens;
 
             try
             {
-
                 // The issuer and signingTokens are cached for 24 hours. They are updated if any of the conditions in the if condition is true.            
                 if (DateTime.UtcNow.Subtract(_stsMetadataRetrievalTime).TotalHours > 24
                     || string.IsNullOrEmpty(_issuer)
@@ -216,7 +214,7 @@ namespace MessageBoardService
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
-            JwtSecurityTokenHandler tokenHandler = new CustomJwtSecurityTokenHandler();
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             tokenHandler.Configuration = new SecurityTokenHandlerConfiguration
             {
                 CertificateValidator = X509CertificateValidator.None
@@ -225,15 +223,13 @@ namespace MessageBoardService
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
                 ValidAudience = audience,
-                //ValidateAudience = false,
-                //ValidateIssuer = false,
+                ValidateAudience = true,
 
                 ValidIssuer = issuer,
+                ValidateIssuer = true,
+
                 IssuerSigningTokens = signingTokens,
-                //CertificateValidator = X509CertificateValidator.None
-                //ValidateIssuerSigningKey = false,
-                //RequireSignedTokens = false,
-                //CertificateValidator = X509CertificateValidator.None,
+                RequireSignedTokens = true,
             };
 
             try
@@ -259,7 +255,7 @@ namespace MessageBoardService
                 }
 
                 // If the token is scoped, verify that required permission is set in the scope claim.
-                if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value != "user_impersonation")
+                if (ClaimsPrincipal.Current.FindFirst(scopeClaimType) != null && ClaimsPrincipal.Current.FindFirst(scopeClaimType).Value != "access_as_user")
                 {
                     HttpResponseMessage response = BuildResponseErrorMessage(HttpStatusCode.Forbidden);
                     return response;
