@@ -67,7 +67,7 @@ namespace MessageBoardService
         static string aadInstance = "https://login.microsoftonline.com/{0}"; //  ConfigurationManager.AppSettings["ida:AADInstance"];
         static string tenant = "microsoft.onmicrosoft.com"; //  ConfigurationManager.AppSettings["ida:Tenant"];
         static string audience = "https://microsoft.onmicrosoft.com/26ad214e-57ce-495b-b9ce-005284263ab6"; //ConfigurationManager.AppSettings["ida:Audience"];
-        string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+        string authority = String.Format(aadInstance, tenant);
 
         static string _issuer = string.Empty;
         static List<SecurityToken> _signingTokens = null;
@@ -102,6 +102,49 @@ namespace MessageBoardService
             return todoArray;
         }
 #endif
+
+        class CustomJwtSecurityTokenHandler : JwtSecurityTokenHandler
+        {
+            protected override JwtSecurityToken ValidateSignature(string token,
+                TokenValidationParameters validationParameters)
+            {
+                try
+                {
+                    var jwt = base.ValidateSignature(token, validationParameters);
+                    return jwt;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ValidateSignature: ignoring {ex}");
+                    return new JwtSecurityToken(token);
+                }
+            }
+
+            protected override void ValidateAudience(IEnumerable<string> audiences, SecurityToken securityToken, TokenValidationParameters validationParameters)
+            {
+                try
+                {
+                    base.ValidateAudience(audiences, securityToken, validationParameters);
+                }
+                catch(Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ValidateAudience: ignoring {ex}");
+                }
+            }
+
+            protected override string ValidateIssuer(string issuer, SecurityToken securityToken, TokenValidationParameters validationParameters)
+            {
+                try
+                {
+                    return base.ValidateIssuer(issuer, securityToken, validationParameters);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ValidateIssuer: ignoring {ex}");
+                    return issuer;
+                }
+            }
+        }
 
         //
         // SendAsync checks that incoming requests have a valid access token, and sets the current user identity using that access token.
@@ -156,7 +199,7 @@ namespace MessageBoardService
                     || _signingTokens == null)
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
-                    string stsDiscoveryEndpoint = string.Format("{0}/.well-known/openid-configuration", authority);
+                    string stsDiscoveryEndpoint = string.Format("{0}/v2.0/.well-known/openid-configuration", authority);
                     ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
                     OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
                     _issuer = config.Issuer;
@@ -173,7 +216,7 @@ namespace MessageBoardService
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            JwtSecurityTokenHandler tokenHandler = new CustomJwtSecurityTokenHandler();
             tokenHandler.Configuration = new SecurityTokenHandlerConfiguration
             {
                 CertificateValidator = X509CertificateValidator.None
@@ -181,16 +224,16 @@ namespace MessageBoardService
 
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
-                // ValidAudience = audience,
+                ValidAudience = audience,
                 //ValidateAudience = false,
                 //ValidateIssuer = false,
 
                 ValidIssuer = issuer,
                 IssuerSigningTokens = signingTokens,
                 //CertificateValidator = X509CertificateValidator.None
-                ValidateIssuerSigningKey = false,
+                //ValidateIssuerSigningKey = false,
                 //RequireSignedTokens = false,
-                CertificateValidator = X509CertificateValidator.None,
+                //CertificateValidator = X509CertificateValidator.None,
             };
 
             try
@@ -203,6 +246,11 @@ namespace MessageBoardService
 
                 // Set the ClaimsPrincipal on the current thread.
                 Thread.CurrentPrincipal = claimsPrincipal;
+
+                // The ValidateToken method above will return a ClaimsPrincipal.Get the user ID from the NameIdentifier claim
+                // (The sub claim from the JWT will be translated to the NameIdentifier claim)
+                var user = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+
 
                 // Set the ClaimsPrincipal on HttpContext.Current if the app is running in web hosted environment.
                 if (HttpContext.Current != null)
