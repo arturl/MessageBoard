@@ -25,9 +25,62 @@ using System.Web.Http;
 using System.Collections.Concurrent;
 using MessageBoardService.Models;
 using System.Security.Claims;
+using System.Web;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace MessageBoardService.Controllers
 {
+    public class Message
+    {
+        public string Sender;
+        public string Recipient;
+        public string Text;
+        public override string ToString()
+        {
+            return $"{Sender} -> {Recipient}: '{Text}'";
+        }
+    }
+
+    public class MessageBoardController : ApiController
+    {
+        static object messagesLock = new object();
+        static List<Message> messages = new List<Message>();
+
+        static MessageBoardController()
+        {
+            // Data for testing
+            messages.Add(new Message { Sender = "Fred@hotmail.com", Recipient = "arturl@microsoft.com", Text = "Hello from Fred" });
+            messages.Add(new Message { Sender = "Bubba@hotmail.com", Recipient = "arturl@microsoft.com", Text = "Hello from Bubba" });
+            messages.Add(new Message { Sender = "Fred@hotmail.com", Recipient = "someone@microsoft.com", Text = "Hello from Fred" });
+        }
+
+        public IEnumerable<Message> Get()
+        {
+            var user = ClaimsPrincipal.Current.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            lock (messagesLock)
+            {
+                // Extract user messages
+                var usersMessages = messages.Where(m => m.Recipient == user).ToList();
+                // Remove them from the message list
+                messages = messages.Where(m => m.Recipient != user).ToList();
+                return usersMessages;
+            }
+        }
+
+        public async Task<HttpResponseMessage> Post()
+        {
+            var messageText = await Request.Content.ReadAsStringAsync();
+            var message = JsonConvert.DeserializeObject<Message>(messageText);
+            lock (messagesLock)
+            {
+                messages.Add(message);
+            }
+
+            return Request.CreateResponse(HttpStatusCode.Created);
+        }
+    }
+
     public class TodoListController : ApiController
     {
         //

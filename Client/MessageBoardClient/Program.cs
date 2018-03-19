@@ -6,34 +6,26 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Identity.Client;
-// using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using System.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 
-namespace TodoListClientConsole
+namespace MessageBoardConsole
 {
     class Program
     {
-        //const string tenant = "microsoft.onmicrosoft.com";
-        const string clientId = "815a718e-1419-4a51-b90d-28ad6bdecac4"; //"fd952aef-2735-4100-b074-438c2a4914d5";
-        //const string aadInstance = "https://login.microsoftonline.com/{0}";
+        const string clientId = "815a718e-1419-4a51-b90d-28ad6bdecac4";
+        const string messageBoardBaseAddress = "https://localhost:44324";
 
-        //static string authority = "https://login.windows.net/common/oauth2/authorize";  // String.Format(aadInstance, tenant);
-
-        //const string todoListResourceId = "https://contoso.onmicrosoft.com/TodoListService";
-        const string todoListBaseAddress = "https://localhost:44324";
-
-        class Test
+        class InputHandler
         {
             public static PublicClientApplication PublicClientApp = new PublicClientApplication(clientId);
-
-            //Set the API Endpoint to Graph 'me' endpoint
-            //string _graphAPIEndpoint = "https://graph.microsoft.com/v1.0/me";
-            string _graphAPIEndpoint = "https://graph.windows.net/v1.0/me";
 
             //Set the scope for API call to user.read
             // string[] _scopes = new string[] { "api://815a718e-1419-4a51-b90d-28ad6bdecac4/access_as_user"/*"user.read"*/ };
             string[] _scopes = new string[] { "api://26ad214e-57ce-495b-b9ce-005284263ab6/access_as_user"/*"user.read"*/ };
 
-#if true
             public async Task Run()
             {
                 AuthenticationResult authResult = null;
@@ -63,25 +55,85 @@ namespace TodoListClientConsole
                     return;
                 }
 
-                if (authResult != null)
+                if (authResult == null)
                 {
-                    var s = await GetHttpContentWithToken(_graphAPIEndpoint, authResult.AccessToken);
-                    Console.WriteLine(s);
+                    Console.WriteLine($"Authentication failed, exiting");
+                    return;
+                }
+
+                var parsedToken = new JwtSecurityToken(authResult.AccessToken);
+                var user = parsedToken.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+
+                while (true)
+                {
+                    Console.Write($"{user}>");
+                    var command = Console.ReadLine();
+                    var words = command.Split(' ', '\t');
+                    if (words.Count() < 1)
+                        continue;
+                    switch (words[0])
+                    {
+                    case "get":
+                    {
+                        // Get my messages
+                        var messages = await GetHttpContentWithToken("/api/messageboard", authResult.AccessToken);
+                        Console.WriteLine(JsonConvert.DeserializeObject(messages));
+                        break;
+                    }
+                    case "send":
+                    {
+                        // Send 
+                        if (words.Count() < 3)
+                        {
+                            Console.WriteLine($"Syntax: 'to recipient@email.com Message");
+                        }
+                        var recipient = words[1];
+                        var messageText = words.Skip(2).Aggregate((w1, w2) => $"{w1} {w2}");
+
+                        var message = new { Sender = user, Recipient = recipient, Text = messageText };
+
+                        var content = new StringContent(JsonConvert.SerializeObject(message));
+                        var response = await PostHttpContentWithToken("/api/messageboard", authResult.AccessToken, content);
+                        Console.WriteLine(response);
+
+                        break;
+                    }
+                    default:
+                        Console.WriteLine($"Allowed commands are:");
+                        Console.WriteLine($"get                              - check your messages");
+                        Console.WriteLine($"send <recipient-email> <message> - send message to recipient");
+                        Console.WriteLine($"exit                             - exit program");
+                        break;
+                    }
                 }
             }
 
-            public async Task<string> GetHttpContentWithToken(string url, string token)
+            public Task<string> GetHttpContentWithToken(string url, string token)
+            {
+                return ProcessHttpRequestWithToken(url, token, (httpClient) => httpClient.GetAsync(messageBoardBaseAddress + url));
+            }
+
+            public Task<string> PostHttpContentWithToken(string url, string token, HttpContent content)
+            {
+                return ProcessHttpRequestWithToken(url, token, 
+                    (httpClient) =>
+                    {
+                        return httpClient.PostAsync(messageBoardBaseAddress + url, content);
+                    });
+            }
+
+            private async Task<string> ProcessHttpRequestWithToken(string url, string token, Func<HttpClient, Task<HttpResponseMessage>> makeResponse)
             {
                 var httpClient = new System.Net.Http.HttpClient();
-#if true
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                HttpResponseMessage response = await httpClient.GetAsync(todoListBaseAddress + "/api/todolist");
+                httpClient.Timeout = TimeSpan.FromMinutes(60);
 
-                string todoArray = "?";
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                HttpResponseMessage response = await makeResponse(httpClient);
+
+                string textResponse = "?";
                 if (response.IsSuccessStatusCode)
                 {
-                    todoArray = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine(todoArray);
+                    textResponse = await response.Content.ReadAsStringAsync();
                 }
                 else
                 {
@@ -96,30 +148,20 @@ namespace TodoListClientConsole
                     }
                 }
 
-                return todoArray;
-#else
-                System.Net.Http.HttpResponseMessage response;
-                try
-                {
-                    var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
-                    //Add the token in Authorization header
-                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    response = await httpClient.SendAsync(request);
-                    var content = await response.Content.ReadAsStringAsync();
-                    return content;
-                }
-                catch (Exception ex)
-                {
-                    return ex.ToString();
-                }
-#endif
+                return textResponse;
             }
-#endif
         }
 
         static void Main(string[] args)
         {
-            new Test().Run().Wait();
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                Formatting = Formatting.Indented,
+                NullValueHandling = NullValueHandling.Ignore,
+            };
+
+            new InputHandler().Run().Wait();
         }
     }
 }

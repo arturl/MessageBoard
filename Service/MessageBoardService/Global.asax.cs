@@ -65,7 +65,8 @@ namespace MessageBoardService
         // The Audience is the value the service expects to see in tokens that are addressed to it.
         //
         static string aadInstance = "https://login.microsoftonline.com/{0}"; //  ConfigurationManager.AppSettings["ida:AADInstance"];
-        static string tenant = "microsoft.onmicrosoft.com"; //  ConfigurationManager.AppSettings["ida:Tenant"];
+        static string tenant = "common"; //  "microsoft.onmicrosoft.com"
+        //static string tenant = "microsoft.onmicrosoft.com";
         //static string audience = "815a718e-1419-4a51-b90d-28ad6bdecac4"; //ConfigurationManager.AppSettings["ida:Audience"];
         static string audience = "26ad214e-57ce-495b-b9ce-005284263ab6"; //ConfigurationManager.AppSettings["ida:Audience"];
         string authority = String.Format(aadInstance, tenant);
@@ -74,35 +75,6 @@ namespace MessageBoardService
         static List<SecurityToken> _signingTokens = null;
         static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
         static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
-
-#if false
-        public async Task<string> GetHttpContentWithToken(string url, string token)
-        {
-            var httpClient = new System.Net.Http.HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            HttpResponseMessage response = await httpClient.GetAsync(url);
-
-            string todoArray = "?";
-            if (response.IsSuccessStatusCode)
-            {
-                todoArray = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(todoArray);
-            }
-            else
-            {
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    // If the To Do list service returns access denied, clear the token cache and have the user sign-in again.
-                    Console.WriteLine("Sorry, you don't have access to the To Do Service.  Please sign-in again.");
-                }
-                else
-                {
-                    Console.WriteLine("Sorry, an error occurred accessing your To Do list.  Please try again.");
-                }
-            }
-            return todoArray;
-        }
-#endif
 
         class CustomJwtSecurityTokenHandler : JwtSecurityTokenHandler
         {
@@ -215,7 +187,7 @@ namespace MessageBoardService
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            JwtSecurityTokenHandler tokenHandler = new CustomJwtSecurityTokenHandler();
             tokenHandler.Configuration = new SecurityTokenHandlerConfiguration
             {
                 CertificateValidator = X509CertificateValidator.None
@@ -227,7 +199,7 @@ namespace MessageBoardService
                 ValidateAudience = true,
 
                 ValidIssuer = issuer,
-                ValidateIssuer = true,
+                ValidateIssuer = false, // true,
 
                 IssuerSigningTokens = signingTokens,
                 RequireSignedTokens = true,
@@ -237,6 +209,7 @@ namespace MessageBoardService
             {
                 // Validate token.
                 SecurityToken validatedToken = new JwtSecurityToken();
+                SecurityToken parsedToken = new JwtSecurityToken(jwtToken);
 
                 // The following fails with: "IDX10500: Signature validation failed. Unable to resolve SecurityKeyIdentifier"
                 ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(jwtToken, validationParameters, out validatedToken);
@@ -247,7 +220,6 @@ namespace MessageBoardService
                 // The ValidateToken method above will return a ClaimsPrincipal.Get the user ID from the NameIdentifier claim
                 // (The sub claim from the JWT will be translated to the NameIdentifier claim)
                 var user = claimsPrincipal.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
-
 
                 // Set the ClaimsPrincipal on HttpContext.Current if the app is running in web hosted environment.
                 if (HttpContext.Current != null)
