@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2027
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdderBot", "AdderBot.csproj", "{45BC2323-E18E-4636-9820-948C6A481C90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TokenValidation", "..\TokenValidation\TokenValidation.csproj", "{759BDC07-D6E4-493F-B270-E9C7F60AF5D1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45BC2323-E18E-4636-9820-948C6A481C90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45BC2323-E18E-4636-9820-948C6A481C90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45BC2323-E18E-4636-9820-948C6A481C90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45BC2323-E18E-4636-9820-948C6A481C90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{759BDC07-D6E4-493F-B270-E9C7F60AF5D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{759BDC07-D6E4-493F-B270-E9C7F60AF5D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{759BDC07-D6E4-493F-B270-E9C7F60AF5D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{759BDC07-D6E4-493F-B270-E9C7F60AF5D1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F115A355-B0F8-473C-A0A7-799A8D01ED8C}
+	EndGlobalSection
+EndGlobal
