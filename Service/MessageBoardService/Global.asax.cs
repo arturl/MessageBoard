@@ -171,8 +171,8 @@ namespace MessageBoardService
                 {
                     // Get tenant information that's used to validate incoming jwt tokens
                     string stsDiscoveryEndpoint = string.Format("{0}/v2.0/.well-known/openid-configuration", authority);
-                    ConfigurationManager<OpenIdConnectConfiguration> configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
-                    OpenIdConnectConfiguration config = await configManager.GetConfigurationAsync();
+                    var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(stsDiscoveryEndpoint);
+                    var config = await configManager.GetConfigurationAsync();
                     _issuer = config.Issuer;
                     _signingTokens = config.SigningTokens.ToList();
                     
@@ -187,7 +187,7 @@ namespace MessageBoardService
                 return new HttpResponseMessage(HttpStatusCode.InternalServerError);
             }
 
-            JwtSecurityTokenHandler tokenHandler = new CustomJwtSecurityTokenHandler();
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             tokenHandler.Configuration = new SecurityTokenHandlerConfiguration
             {
                 CertificateValidator = X509CertificateValidator.None

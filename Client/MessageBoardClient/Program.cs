@@ -76,7 +76,7 @@ namespace MessageBoardConsole
                     case "get":
                     {
                         // Get my messages
-                        var messages = await GetHttpContentWithToken("/api/messageboard", authResult.AccessToken);
+                        var messages = await GetHttpContentWithToken(messageBoardBaseAddress + "/api/messageboard", authResult.AccessToken);
                         Console.WriteLine(JsonConvert.DeserializeObject(messages));
                         break;
                     }
@@ -93,7 +93,7 @@ namespace MessageBoardConsole
                         var message = new { Sender = user, Recipient = recipient, Text = messageText };
 
                         var content = new StringContent(JsonConvert.SerializeObject(message));
-                        var response = await PostHttpContentWithToken("/api/messageboard", authResult.AccessToken, content);
+                        var response = await PostHttpContentWithToken(messageBoardBaseAddress + "/api/messageboard", authResult.AccessToken, content);
                         Console.WriteLine(response);
 
                         break;
@@ -108,23 +108,23 @@ namespace MessageBoardConsole
                 }
             }
 
-            public Task<string> GetHttpContentWithToken(string url, string token)
+            public static Task<string> GetHttpContentWithToken(string url, string token)
             {
-                return ProcessHttpRequestWithToken(url, token, (httpClient) => httpClient.GetAsync(messageBoardBaseAddress + url));
+                return ProcessHttpRequestWithToken(token, (httpClient) => httpClient.GetAsync(url));
             }
 
-            public Task<string> PostHttpContentWithToken(string url, string token, HttpContent content)
+            public static Task<string> PostHttpContentWithToken(string url, string token, HttpContent content)
             {
-                return ProcessHttpRequestWithToken(url, token, 
+                return ProcessHttpRequestWithToken(token, 
                     (httpClient) =>
                     {
-                        return httpClient.PostAsync(messageBoardBaseAddress + url, content);
+                        return httpClient.PostAsync(url, content);
                     });
             }
 
-            private async Task<string> ProcessHttpRequestWithToken(string url, string token, Func<HttpClient, Task<HttpResponseMessage>> makeResponse)
+            internal static async Task<string> ProcessHttpRequestWithToken(string token, Func<HttpClient, Task<HttpResponseMessage>> makeResponse)
             {
-                var httpClient = new System.Net.Http.HttpClient();
+                var httpClient = new HttpClient();
                 httpClient.Timeout = TimeSpan.FromMinutes(60);
 
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -152,6 +152,14 @@ namespace MessageBoardConsole
             }
         }
 
+        static async Task Test()
+        {
+            var message = new { Sender = "aa", Recipient = "rr", Text = "aaa"};
+            var content = new StringContent(JsonConvert.SerializeObject(message));
+            var resp = await InputHandler.PostHttpContentWithToken("http://localhost:58343/api/bot", "blah-token", content);
+
+        }
+
         static void Main(string[] args)
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
@@ -162,6 +170,7 @@ namespace MessageBoardConsole
             };
 
             new InputHandler().Run().Wait();
+            //Test().Wait();
         }
     }
 }
