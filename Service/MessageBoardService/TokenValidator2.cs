@@ -24,7 +24,6 @@ namespace MessageBoardService
         static string _issuer = string.Empty;
         static List<SecurityToken> _signingTokens = null;
         static DateTime _stsMetadataRetrievalTime = DateTime.MinValue;
-        static string scopeClaimType = "http://schemas.microsoft.com/identity/claims/scope";
         
         //
         // SendAsync checks that incoming requests have a valid access token, and sets the current user identity using that access token.
