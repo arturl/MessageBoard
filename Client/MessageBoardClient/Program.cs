@@ -98,6 +98,8 @@ namespace MessageBoardConsole
 
                         break;
                     }
+                    case "exit":
+                        return;
                     default:
                         Console.WriteLine($"Allowed commands are:");
                         Console.WriteLine($"get                              - check your messages");
@@ -137,15 +139,7 @@ namespace MessageBoardConsole
                 }
                 else
                 {
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                    {
-                        // If the To Do list service returns access denied, clear the token cache and have the user sign-in again.
-                        Console.WriteLine("Sorry, you don't have access to the To Do Service.  Please sign-in again.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Sorry, an error occurred accessing your To Do list.  Please try again.");
-                    }
+                    Console.WriteLine($"Error {response.StatusCode}.");
                 }
 
                 return textResponse;

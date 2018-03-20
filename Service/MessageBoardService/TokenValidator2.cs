@@ -43,6 +43,20 @@ namespace MessageBoardService
                 throw new UnauthorizedAccessException("Missing token in authorization header");
             }
 
+            var parsedToken = new JwtSecurityToken(jwtToken);
+            if(parsedToken.Issuer.Contains("Message Board"))
+            {
+                // Comes from a bot. Which one?
+                var user = parsedToken.Claims.Where(c => c.Type == "user").FirstOrDefault()?.Value;
+                if(string.IsNullOrEmpty(user))
+                {
+                    throw new UnauthorizedAccessException("Missing user claim in JWT");
+                }
+                var secret = Controllers.MessageBoardController.bots.Where(b => b.Id == user).FirstOrDefault()?.Secret;
+                TokenValidation.Tokens.ValidateToken(jwtToken, secret);
+                return user;
+            }
+
             string issuer;
             List<SecurityToken> signingTokens;
 
@@ -66,7 +80,7 @@ namespace MessageBoardService
                 issuer = _issuer;
                 signingTokens = _signingTokens;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
@@ -93,7 +107,6 @@ namespace MessageBoardService
             {
                 // Validate token.
                 SecurityToken validatedToken = new JwtSecurityToken();
-                SecurityToken parsedToken = new JwtSecurityToken(jwtToken);
 
                 // The following fails with: "IDX10500: Signature validation failed. Unable to resolve SecurityKeyIdentifier"
                 ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(jwtToken, validationParameters, out validatedToken);

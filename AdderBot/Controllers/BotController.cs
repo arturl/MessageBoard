@@ -10,9 +10,20 @@ namespace AdderBot.Controllers
 {
     public class Message
     {
+        /// <summary>
+        /// User who send the bot a message
+        /// </summary>
         public string Sender;
+
+        /// <summary>
+        /// Text of the message
+        /// </summary>
         public string Text;
-        public string ReplyUrl;
+
+        /// <summary>
+        /// What Url in Message Board to send response to
+        /// </summary>
+        public string ReplyTo;
     }
 
     public class BotController : ApiController
@@ -28,7 +39,7 @@ namespace AdderBot.Controllers
             {
                 try
                 {
-                    var validatedToken = TokenValidation.Tokens.ValidateToken(jwtToken, secret);
+                    TokenValidation.Tokens.ValidateToken(jwtToken, secret);
 
                     var requestText = await Request.Content.ReadAsStringAsync();
                     var message = JsonConvert.DeserializeObject<Message>(requestText);
@@ -41,10 +52,10 @@ namespace AdderBot.Controllers
                     var httpClient = new HttpClient();
                     httpClient.Timeout = TimeSpan.FromMinutes(60);
 
-                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TokenValidation.Tokens.MakeToken(secret));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TokenValidation.Tokens.MakeToken(secret, botId));
                     var reply = new { Sender = botId, Recipient = message.Sender, Text = result };
-                    var content = new StringContent(JsonConvert.SerializeObject(message));
-                    HttpResponseMessage response = await httpClient.PostAsync(message.ReplyUrl, content);
+                    var content = new StringContent(JsonConvert.SerializeObject(reply));
+                    HttpResponseMessage response = await httpClient.PostAsync(message.ReplyTo, content);
 
                     return response;
                 }

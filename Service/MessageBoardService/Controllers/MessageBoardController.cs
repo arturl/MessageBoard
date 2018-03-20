@@ -75,7 +75,8 @@ namespace MessageBoardService.Controllers
             }
         }
 
-        static List<Bot> bots = new List<Bot>();
+        // TODO: move elsewhere
+        public static List<Bot> bots = new List<Bot>();
 
         public async Task<HttpResponseMessage> Post()
         {
@@ -91,8 +92,16 @@ namespace MessageBoardService.Controllers
                 // This message goes to a bot. Forward it to the bot (with a different Auth token) and not store it
                 var httpClient = new HttpClient();
 
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Tokens.MakeToken(bot.Secret));
-                var content = new StringContent(JsonConvert.SerializeObject(message));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Tokens.MakeToken(bot.Secret, user));
+
+                var messageToBot = new
+                {
+                    Sender = message.Sender,
+                    Text = message.Text,
+                    ReplyTo = "https://localhost:44324//api/messageboard" // TODO: change this for cloud deployments
+                };
+
+                var content = new StringContent(JsonConvert.SerializeObject(messageToBot));
                 HttpResponseMessage response = await httpClient.PostAsync(bot.Url, content);
                 return response;
             }
