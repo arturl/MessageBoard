@@ -62,9 +62,9 @@ namespace MessageBoardService.Controllers
             bots.Add(new Bot { Id = "bot37", Secret = "hfEEGaOvBt8K8HKOaKBuf72QwyhIAxMT", Url = "http://localhost:58345/api/bot", Description = "Can do something" });
         }
 
-        public IEnumerable<Message> Get()
+        public async Task<IEnumerable<Message>> Get()
         {
-            var user = ClaimsPrincipal.Current.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            var user = await TokenValidatorHandler2.ValidateTokenInHttpRequest(Request);
             lock (messagesLock)
             {
                 // Extract user messages
@@ -79,7 +79,7 @@ namespace MessageBoardService.Controllers
 
         public async Task<HttpResponseMessage> Post()
         {
-            var user = ClaimsPrincipal.Current.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value;
+            var user = await TokenValidatorHandler2.ValidateTokenInHttpRequest(Request);
             var messageText = await Request.Content.ReadAsStringAsync();
             var message = JsonConvert.DeserializeObject<Message>(messageText);
 
